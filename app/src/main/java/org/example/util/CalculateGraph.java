@@ -1,5 +1,6 @@
 package org.example.util;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -13,12 +14,12 @@ public class CalculateGraph {
      * Passes in date and sleep debt values to be graphed.
      * @param nights - Preconditon: nights is sorted by date in ascending order
      */
-    public static void computeValues(ArrayList<Night> nights) {
+    public static ResultWrapper computeValues(ArrayList<Night> nights) {
         ArrayList<Double> sleepDeficits = new ArrayList<Double>();
         ArrayList<Double> sleepDebts = new ArrayList<Double>(); // Y axis
         ArrayList<Integer> dates = new ArrayList<Integer>();
         // Compute "Day 1" offset
-        int offset = 1 + millisecondsToDays(nights.get(0).date().getTime());
+        LocalDate day1 = nights.get(0).date();
         // For each night - On^2
         for(int i = 0; i < nights.size(); i++) {
             sleepDeficits.add(Constants.optimalHours - nights.get(i).hoursSlept());
@@ -33,10 +34,10 @@ public class CalculateGraph {
             System.out.println("Date: " + (i));
             System.out.println("Debt: " + sleepDebt);
         }
-
+        return new ResultWrapper(dates, sleepDebts);
         // Finally pass in the two ArrayLists into the Simulator to be graphed
         // Temporary method
-        new SimulatorApp().launch(dates, sleepDebts);
+        // new SimulatorApp().launch(dates, sleepDebts);
     }
 
     public static int millisecondsToDays(long milliseconds) {

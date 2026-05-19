@@ -3,6 +3,8 @@
  */
 package org.example;
 
+import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,6 +12,11 @@ import java.util.Date;
 import java.util.Scanner;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.DayOfWeek;
+import java.util.Locale;
 
 import org.example.ui.SimulatorApp;
 import org.example.util.CalculateGraph;
@@ -18,27 +25,28 @@ import org.knowm.xchart.QuickChart;
 import org.knowm.xchart.SwingWrapper;
 import org.knowm.xchart.XYChart;
 
+import com.github.lgooddatepicker.components.DatePicker;
+import com.github.lgooddatepicker.components.DatePickerSettings;
+
 public class App {
     public String getGreeting() {
         return "Hello World!";
     }
 
-    public static void main(String[] args) throws IOException{
-        // Launch Swing-based simulator UI by default
-        // SimulatorApp.launchSwing(args);
-        ArrayList<Night> nights = new ArrayList<Night>();
-        //File file = new File("data.csv");
-        BufferedReader scanner = new BufferedReader(new FileReader("template-data.csv"));
-        // Scanner scanner = new Scanner(file);
-        String line = "";
-        while((line = scanner.readLine()) != null) {
-            String[] night = line.split(",");
-            nights.add(new Night(new Date(CalculateGraph.daysToMilliseconds(Integer.parseInt(night[0]))), Double.parseDouble(night[1])));
-        }
-
-        CalculateGraph.computeValues(nights);
-        // new SimulatorApp().start();
-
-        scanner.close();
+    /**
+     * Main entry. Replaced the original CLI/CSV-driven main with a Swing demo
+     * showing how to use LGoodDatePicker.
+     *
+     * Important:
+     * - All Swing component creation and updates must happen on the Event
+     *   Dispatch Thread (EDT). We use SwingUtilities.invokeLater(...) to
+     *   schedule UI creation on the EDT. This prevents subtle threading bugs
+     *   where the UI is updated from background threads.
+     */
+    public static void main(String[] args) {
+        // Schedule UI initialization on the Event Dispatch Thread (EDT).
+        SwingUtilities.invokeLater(() -> {
+            new SimulatorApp().start();
+        });
     }
 }

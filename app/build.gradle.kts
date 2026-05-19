@@ -26,6 +26,9 @@ dependencies {
 
     // Use XChart (Swing) for charts in a lightweight, cross-platform way
     implementation("org.knowm.xchart:xchart:3.8.5")
+
+    // LGoodDatePicker to choose calendar days
+    implementation("com.github.lgooddatepicker:LGoodDatePicker:11.2.1")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.

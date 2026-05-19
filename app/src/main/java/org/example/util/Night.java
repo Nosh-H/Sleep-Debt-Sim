@@ -1,7 +1,6 @@
 package org.example.util;
 
-import java.util.Date;
-
-public record Night(Date date, double hoursSlept) {
+import java.time.LocalDate;
+public record Night(LocalDate date, double hoursSlept) {
     
 }
