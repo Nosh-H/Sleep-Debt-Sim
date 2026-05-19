@@ -10,4 +10,5 @@ public class Constants {
 
     public static final double DEFICIT_DECAY_POWER = 1.25;
     public static final double DEFICIT_MULTIPLIER = 1;
+    public static final String XY_SERIES_NAME = "Sleep Balance/Debt";
 }

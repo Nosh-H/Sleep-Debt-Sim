@@ -30,7 +30,7 @@ public class CalculateGraph {
                 sleepDebt += sleepDeficits.get(j) / Math.pow((i + 1 - j), Constants.DEFICIT_DECAY_POWER) * Constants.DEFICIT_MULTIPLIER;
             }
             sleepDebts.add(-sleepDebt);
-            dates.add(i);
+            dates.add(day1.until(nights.get(i).date()).getDays());
             System.out.println("Date: " + (i));
             System.out.println("Debt: " + sleepDebt);
         }
