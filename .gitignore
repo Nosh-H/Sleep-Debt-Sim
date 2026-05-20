@@ -6,3 +6,6 @@ build
 
 # Ignore Kotlin plugin data
 .kotlin
+
+# Ignore the Macbook's local JDK
+oracleJdk-26.jdk
