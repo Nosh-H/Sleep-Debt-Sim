@@ -4,7 +4,6 @@
 package org.example;
 
 import javax.swing.*;
-import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,12 +20,6 @@ import java.util.Locale;
 import org.example.ui.SimulatorApp;
 import org.example.util.CalculateGraph;
 import org.example.util.Night;
-import org.knowm.xchart.QuickChart;
-import org.knowm.xchart.SwingWrapper;
-import org.knowm.xchart.XYChart;
-
-import com.github.lgooddatepicker.components.DatePicker;
-import com.github.lgooddatepicker.components.DatePickerSettings;
 
 public class App {
     public String getGreeting() {

@@ -6,6 +6,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+// Currently not using
 public class Simulation {
     public interface Listener {
         void onTick(long step, double value);

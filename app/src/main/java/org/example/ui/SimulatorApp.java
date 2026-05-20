@@ -6,7 +6,7 @@ import org.knowm.xchart.QuickChart;
 import org.knowm.xchart.XChartPanel;
 import org.knowm.xchart.SwingWrapper;
 import org.knowm.xchart.style.Styler;
-import org.example.sim.Simulation;
+import org.example.Constants;
 import org.example.util.CalculateGraph;
 import org.example.util.Night;
 import org.example.util.ResultWrapper;
@@ -22,20 +22,11 @@ import com.github.lgooddatepicker.components.DatePickerSettings;
 
 public class SimulatorApp {
 
-    private Simulation sim;
     private final List<Double> xData = new ArrayList<Double>();
     private final List<Double> yData = new ArrayList<Double>();
-    private final List<LocalDate> date = new ArrayList<LocalDate>();
-    private final List<Double> hoursSlept = new ArrayList<Double>();
     private final ArrayList<Night> nights = new ArrayList<Night>();
 
-    private SwingWrapper<XYChart> swingWrapper;
-
-    public static void launchSwing() {
-
-    }
-
-    // Will become start
+    // Starts and runs the simulation
     public void start() {
         // Build main frame
         JFrame frame = new JFrame("Simulator - Date Picker");
@@ -77,12 +68,12 @@ public class SimulatorApp {
         controls.add(listScroll);
 
         // Chart: embedded XChart panel
-        XYChart chart = new XYChartBuilder().width(800).height(600).title("Sleep Debt over Nights").xAxisTitle("Index").yAxisTitle("Debt").build();
+        XYChart chart = new XYChartBuilder().width(800).height(600).title("Sleep Debt over Nights").xAxisTitle("Days Since Earliest Entry").yAxisTitle("Debt").build();
         chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
         // Base values to prevent crash. Assume no sleep debt on day 0.
         xData.add(0.0);
         yData.add(0.0);
-        chart.addSeries("Sleep Debt", xData, yData);
+        chart.addSeries(Constants.XY_SERIES_NAME, xData, yData);
         XChartPanel<XYChart> chartPanel = new XChartPanel<>(chart);
 
         // Add button behaviour: add the selected date to list and update chart
@@ -102,7 +93,7 @@ public class SimulatorApp {
                 // Recalculate sleep debts
                 ResultWrapper coordinates = CalculateGraph.computeValues(nights);
                 // Update the chart
-                chart.updateXYSeries("Sleep Debt", new ArrayList<>(coordinates.x()), new ArrayList<>(coordinates.y()), null);
+                chart.updateXYSeries(Constants.XY_SERIES_NAME, new ArrayList<>(coordinates.x()), new ArrayList<>(coordinates.y()), null);
             }
             chartPanel.revalidate();
             chartPanel.repaint();
@@ -115,35 +106,12 @@ public class SimulatorApp {
         frame.setVisible(true);
     }
 
-    // Temporary start function
+    // Former temporary start function
     public void launch(ArrayList<Integer> days, ArrayList<Double> debt) {
-        XYChart chart = QuickChart.getChart("Sleep Balance over Multiple Nights", "Day", "Balance/Debt", "Sleep Balance", days, debt);
+        XYChart chart = QuickChart.getChart("Sleep Balance over Multiple Nights. Negative balance = debt", "Day", "Sleep Balance/Debt", Constants.XY_SERIES_NAME, days, debt);
         // chart.getStyler().setLegendVisible(false);
 
         // Show it
         new SwingWrapper<>(chart).displayChart();
-    }
-
-    // OLD - currently not called
-    private void setupSimulation(XYChart chart) {
-        sim = new Simulation();
-        sim.addListener((step, value) -> {
-            synchronized (xData) {
-                xData.add((double) step);
-                yData.add(value);
-                if (xData.size() > 200) {
-                    xData.remove(0);
-                    yData.remove(0);
-                }
-            }
-            // Update chart on EDT
-            SwingUtilities.invokeLater(() -> {
-                synchronized (xData) {
-                    chart.updateXYSeries("data", new ArrayList<>(xData), new ArrayList<>(yData), null);
-                    swingWrapper.repaintChart();
-                }
-            });
-        });
-        sim.start(100);
     }
 }
