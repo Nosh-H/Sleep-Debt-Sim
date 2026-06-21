@@ -8,14 +8,18 @@ import org.knowm.xchart.SwingWrapper;
 import org.knowm.xchart.style.Styler;
 import org.example.Constants;
 import org.example.util.CalculateGraph;
+import org.example.util.CsvNightLoader;
+import org.example.util.ExcelDateConverter;
 import org.example.util.Night;
 import org.example.util.ResultWrapper;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.time.LocalDate;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Comparator;
 
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DatePickerSettings;
@@ -23,8 +27,6 @@ import com.google.common.primitives.Doubles;
 
 public class SimulatorApp {
 
-    private final List<Double> xData = new ArrayList<Double>();
-    private final List<Double> yData = new ArrayList<Double>();
     private final ArrayList<Night> nights = new ArrayList<Night>();
 
     // Starts and runs the simulation
@@ -50,6 +52,7 @@ public class SimulatorApp {
 
         // Add Date button
         JButton addBtn = new JButton("Add Date");
+        JButton uploadBtn = new JButton("Upload CSV");
         // Date list
         DefaultListModel<String> listModel = new DefaultListModel<>();
         JList<String> dateList = new JList<>(listModel);
@@ -64,6 +67,11 @@ public class SimulatorApp {
         controls.add(textField);
         controls.add(Box.createVerticalStrut(8));
         controls.add(addBtn);
+        controls.add(Box.createVerticalStrut(8));
+        controls.add(uploadBtn);
+        controls.add(Box.createVerticalStrut(8));
+        controls.add(new JLabel("CSV format: date + hours"));
+        controls.add(new JLabel("Date may be Excel serial or yyyy-MM-dd."));
         controls.add(Box.createVerticalStrut(12));
         controls.add(new JLabel("Added dates:"));
         controls.add(listScroll);
@@ -72,38 +80,46 @@ public class SimulatorApp {
         XYChart chart = new XYChartBuilder().width(800).height(600).title("Sleep Debt over Nights").xAxisTitle("Days Since Earliest Entry").yAxisTitle("Debt").build();
         chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
         // Base values to prevent crash. Assume no sleep debt on day 0.
-        xData.add(0.0);
-        yData.add(0.0);
-        chart.addSeries(Constants.XY_SERIES_NAME, xData, yData);
+        chart.addSeries(Constants.XY_SERIES_NAME, new ArrayList<Integer>(java.util.List.of(0)), new ArrayList<Double>(java.util.List.of(0.0)));
         XChartPanel<XYChart> chartPanel = new XChartPanel<>(chart);
 
         // Add button behaviour: add the selected date to list and update chart
         addBtn.addActionListener(ev -> {
-            LocalDate ld = datePicker.getDate();
-            if (ld == null) {
+            java.time.LocalDate selectedDate = datePicker.getDate();
+            if (selectedDate == null) {
                 JOptionPane.showMessageDialog(frame, "Please pick a date before adding.", "No date", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            // Append to chart data (use ResultWrapper utility to hold X and Y's)
-            synchronized (nights) {
-                // Prepare user input for data handling
-                Double parsed = Doubles.tryParse((textField.getText() == null ? "" : textField.getText()));
-                if (parsed == null) {
-                    JOptionPane.showMessageDialog(frame, "Please only type an integer or decimal before adding.", "Invalid number", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-                nights.add(new Night(datePicker.getDate(), parsed));
-                // Recalculate sleep debts
-                ResultWrapper coordinates = CalculateGraph.computeValues(nights);
-                
-                // Add to UI list
-                listModel.addElement(ld.toString());
-                // Update the chart
-                chart.updateXYSeries(Constants.XY_SERIES_NAME, new ArrayList<>(coordinates.x()), new ArrayList<>(coordinates.y()), null);
+            Double parsedHours = Doubles.tryParse((textField.getText() == null ? "" : textField.getText().trim()));
+            if (parsedHours == null) {
+                JOptionPane.showMessageDialog(frame, "Please only type an integer or decimal before adding.", "Invalid number", JOptionPane.WARNING_MESSAGE);
+                return;
             }
-            chartPanel.revalidate();
-            chartPanel.repaint();
+
+            addNightAndRefresh(new Night(ExcelDateConverter.toExcelSerial(selectedDate), parsedHours), chart, listModel, chartPanel);
+        });
+
+        // CSV upload behaviour: load rows, append them to the nights list, and refresh the plot
+        uploadBtn.addActionListener(ev -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Choose a sleep data CSV");
+            fileChooser.setFileFilter(new FileNameExtensionFilter("CSV files", "csv"));
+
+            if (fileChooser.showOpenDialog(frame) != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+
+            Path csvPath = fileChooser.getSelectedFile().toPath();
+            try {
+                ArrayList<Night> importedNights = CsvNightLoader.load(csvPath);
+                synchronized (nights) {
+                    nights.addAll(importedNights);
+                }
+                refreshChartAndList(chart, listModel, chartPanel);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(frame, "Could not load CSV:\n" + ex.getMessage(), "CSV error", JOptionPane.ERROR_MESSAGE);
+            }
         });
 
         frame.add(controls, BorderLayout.WEST);
@@ -111,6 +127,36 @@ public class SimulatorApp {
         frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+    }
+
+    private void addNightAndRefresh(Night night, XYChart chart, DefaultListModel<String> listModel, XChartPanel<XYChart> chartPanel) {
+        synchronized (nights) {
+            nights.add(night);
+        }
+        refreshChartAndList(chart, listModel, chartPanel);
+    }
+
+    private void refreshChartAndList(XYChart chart, DefaultListModel<String> listModel, XChartPanel<XYChart> chartPanel) {
+        ArrayList<Night> orderedNights;
+        synchronized (nights) {
+            orderedNights = new ArrayList<Night>(nights);
+        }
+
+        orderedNights.sort(Comparator.comparingInt(Night::excelDateSerial));
+
+        listModel.clear();
+        for (Night night : orderedNights) {
+            listModel.addElement(formatNightForDisplay(night));
+        }
+
+        ResultWrapper coordinates = CalculateGraph.computeValues(orderedNights);
+        chart.updateXYSeries(Constants.XY_SERIES_NAME, new ArrayList<Integer>(coordinates.x()), new ArrayList<Double>(coordinates.y()), null);
+        chartPanel.revalidate();
+        chartPanel.repaint();
+    }
+
+    private String formatNightForDisplay(Night night) {
+        return ExcelDateConverter.toDisplayString(night.excelDateSerial()) + " — " + night.hoursSlept() + " hours";
     }
 
     // Former temporary start function

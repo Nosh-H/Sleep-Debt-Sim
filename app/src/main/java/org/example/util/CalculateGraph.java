@@ -1,11 +1,9 @@
 package org.example.util;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Comparator;
 
 import org.example.Constants;
-import org.example.ui.SimulatorApp;
 
 public class CalculateGraph {
     
@@ -18,21 +16,30 @@ public class CalculateGraph {
         ArrayList<Double> sleepDeficits = new ArrayList<Double>();
         ArrayList<Double> sleepDebts = new ArrayList<Double>(); // Y axis
         ArrayList<Integer> dates = new ArrayList<Integer>();
+
+        if (nights == null || nights.isEmpty()) {
+            dates.add(0);
+            sleepDebts.add(0.0);
+            return new ResultWrapper(dates, sleepDebts);
+        }
+
+        ArrayList<Night> orderedNights = new ArrayList<Night>(nights);
+        orderedNights.sort(Comparator.comparingInt(Night::excelDateSerial));
+
         // Compute "Day 1" offset
-        LocalDate day1 = nights.get(0).date();
+        int day1 = orderedNights.get(0).excelDateSerial();
+
         // For each night - On^2
-        for(int i = 0; i < nights.size(); i++) {
-            sleepDeficits.add(Constants.optimalHours - nights.get(i).hoursSlept());
+        for (int i = 0; i < orderedNights.size(); i++) {
+            sleepDeficits.add(Constants.optimalHours - orderedNights.get(i).hoursSlept());
             // Compute sleep debt from the nights before it
             double sleepDebt = 0;
-            for(int j = 0; j <= i; j++) {
+            for (int j = 0; j <= i; j++) {
                 // For now, have the sleep debt from a night's deficit be inversely proportional to how long ago that deficit was
                 sleepDebt += sleepDeficits.get(j) / Math.pow((i + 1 - j), Constants.DEFICIT_DECAY_POWER) * Constants.DEFICIT_MULTIPLIER;
             }
             sleepDebts.add(-sleepDebt);
-            dates.add(day1.until(nights.get(i).date()).getDays());
-            System.out.println("Date: " + (i));
-            System.out.println("Debt: " + sleepDebt);
+            dates.add(orderedNights.get(i).excelDateSerial() - day1);
         }
         return new ResultWrapper(dates, sleepDebts);
         // Finally pass in the two ArrayLists into the Simulator to be graphed
