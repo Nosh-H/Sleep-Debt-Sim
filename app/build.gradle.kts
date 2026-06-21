@@ -29,6 +29,9 @@ dependencies {
 
     // LGoodDatePicker to choose calendar days
     implementation("com.github.lgooddatepicker:LGoodDatePicker:11.2.1")
+
+    // Guava library to use the Double.tryParse() method for more elegant input validation
+    implementation("com.google.guava:guava:33.6.0-jre")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.

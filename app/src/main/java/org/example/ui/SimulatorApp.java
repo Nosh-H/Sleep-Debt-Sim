@@ -19,6 +19,7 @@ import java.util.List;
 
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DatePickerSettings;
+import com.google.common.primitives.Doubles;
 
 public class SimulatorApp {
 
@@ -83,15 +84,21 @@ public class SimulatorApp {
                 JOptionPane.showMessageDialog(frame, "Please pick a date before adding.", "No date", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            // Add to UI list
-            listModel.addElement(ld.toString());
 
             // Append to chart data (use ResultWrapper utility to hold X and Y's)
             synchronized (nights) {
                 // Prepare user input for data handling
-                nights.add(new Night(datePicker.getDate(), Double.parseDouble(textField.getText())));
+                Double parsed = Doubles.tryParse((textField.getText() == null ? "" : textField.getText()));
+                if (parsed == null) {
+                    JOptionPane.showMessageDialog(frame, "Please only type an integer or decimal before adding.", "Invalid number", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                nights.add(new Night(datePicker.getDate(), parsed));
                 // Recalculate sleep debts
                 ResultWrapper coordinates = CalculateGraph.computeValues(nights);
+                
+                // Add to UI list
+                listModel.addElement(ld.toString());
                 // Update the chart
                 chart.updateXYSeries(Constants.XY_SERIES_NAME, new ArrayList<>(coordinates.x()), new ArrayList<>(coordinates.y()), null);
             }
