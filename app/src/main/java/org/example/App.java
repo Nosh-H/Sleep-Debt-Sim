@@ -4,22 +4,8 @@
 package org.example;
 
 import javax.swing.*;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Scanner;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.DayOfWeek;
-import java.util.Locale;
 
 import org.example.ui.SimulatorApp;
-import org.example.util.CalculateGraph;
-import org.example.util.Night;
 
 public class App {
     public String getGreeting() {
