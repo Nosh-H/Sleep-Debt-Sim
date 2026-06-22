@@ -26,8 +26,12 @@ public final class ExcelDateConverter {
             throw new IllegalArgumentException("Excel serial dates must be 1 or greater.");
         }
 
+        if (serial == 60) {
+            throw new IllegalArgumentException("Serial 60 represents the non-existent Feb 29, 1900.");
+        }
+
         LocalDate date = EXCEL_EPOCH.plusDays(serial);
-        if (serial >= 60) {
+        if (serial > 60) {
             date = date.minusDays(1);
         }
         return date;

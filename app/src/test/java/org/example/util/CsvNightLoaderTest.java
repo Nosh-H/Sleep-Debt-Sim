@@ -14,10 +14,10 @@ class CsvNightLoaderTest {
     void parsesHeaderedCsvWithIsoAndExcelDates() throws Exception {
         int secondDateSerial = ExcelDateConverter.toExcelSerial(LocalDate.of(2026, 6, 21));
         String csv = """
-                Date,Hours
-                2026-06-20,8.0
-                %d,6.5
-                """.formatted(secondDateSerial);
+            Date,Hours
+            %d,6.5
+            2026-06-20,8.0
+            """.formatted(secondDateSerial);
 
         ArrayList<Night> nights = CsvNightLoader.load(new StringReader(csv));
 

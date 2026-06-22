@@ -10,7 +10,7 @@ public class CalculateGraph {
     /**
      * Computes sleep debt for each night from the first one until the final one.
      * Passes in date and sleep debt values to be graphed.
-     * @param nights - Preconditon: nights is sorted by date in ascending order
+     * @param nights - The list of nights. The method sorts the list by date internally if needed.
      */
     public static ResultWrapper computeValues(ArrayList<Night> nights) {
         ArrayList<Double> sleepDebts = new ArrayList<Double>(); // Y axis

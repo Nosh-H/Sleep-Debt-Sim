@@ -29,12 +29,11 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
+
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.FileDialog;
-import java.awt.Frame;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
