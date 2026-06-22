@@ -1,29 +1,46 @@
 package org.example.ui;
 
-import org.knowm.xchart.XYChart;
-import org.knowm.xchart.XYChartBuilder;
-import org.knowm.xchart.QuickChart;
-import org.knowm.xchart.XChartPanel;
-import org.knowm.xchart.SwingWrapper;
-import org.knowm.xchart.style.Styler;
 import org.example.Constants;
 import org.example.util.CalculateGraph;
+import org.example.util.CsvNightExporter;
 import org.example.util.CsvNightLoader;
 import org.example.util.ExcelDateConverter;
 import org.example.util.Night;
 import org.example.util.ResultWrapper;
-
-import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import java.awt.*;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
+import org.knowm.xchart.QuickChart;
+import org.knowm.xchart.SwingWrapper;
+import org.knowm.xchart.XChartPanel;
+import org.knowm.xchart.XYChart;
+import org.knowm.xchart.XYChartBuilder;
+import org.knowm.xchart.style.Styler;
 
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DatePickerSettings;
 import com.google.common.primitives.Doubles;
+
+import javax.swing.BorderFactory;
+import javax.swing.DefaultListModel;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FileDialog;
+import java.awt.Frame;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 
 public class SimulatorApp {
 
@@ -31,67 +48,72 @@ public class SimulatorApp {
 
     // Starts and runs the simulation
     public void start() {
-        // Build main frame
         JFrame frame = new JFrame("Simulator - Date Picker");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout(8, 8));
 
-        // Left control panel: DatePicker, Add button, and list of added dates
         JPanel controls = new JPanel();
-        controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
+        controls.setLayout(new javax.swing.BoxLayout(controls, javax.swing.BoxLayout.Y_AXIS));
         controls.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-        // Date Picker calendar
         DatePickerSettings dpSettings = new DatePickerSettings();
         DatePicker datePicker = new DatePicker(dpSettings);
         datePicker.setMaximumSize(new Dimension(200, 30));
 
-        // Text input for hours sleep
-        JTextField textField = new JTextField(20); // (where 20 is the column width).
-        textField.setText("8.0"); // Sets default text to 8.0
+        JTextField textField = new JTextField(20);
+        textField.setText("8.0");
 
-        // Add Date button
         JButton addBtn = new JButton("Add Date");
         JButton uploadBtn = new JButton("Upload CSV");
-        // Date list
+        JButton downloadBtn = new JButton("Download CSV");
+
         DefaultListModel<String> listModel = new DefaultListModel<>();
         JList<String> dateList = new JList<>(listModel);
         dateList.setVisibleRowCount(8);
         JScrollPane listScroll = new JScrollPane(dateList);
         listScroll.setPreferredSize(new Dimension(220, 160));
 
-        // Add User Input to left side of GUI
         controls.add(new JLabel("Choose date:"));
-        controls.add(Box.createVerticalStrut(6));
+        controls.add(javax.swing.Box.createVerticalStrut(6));
         controls.add(datePicker);
         controls.add(textField);
-        controls.add(Box.createVerticalStrut(8));
+        controls.add(javax.swing.Box.createVerticalStrut(8));
         controls.add(addBtn);
-        controls.add(Box.createVerticalStrut(8));
+        controls.add(javax.swing.Box.createVerticalStrut(8));
         controls.add(uploadBtn);
-        controls.add(Box.createVerticalStrut(8));
+        controls.add(javax.swing.Box.createVerticalStrut(8));
+        controls.add(downloadBtn);
+        controls.add(javax.swing.Box.createVerticalStrut(8));
         controls.add(new JLabel("CSV format: date + hours"));
         controls.add(new JLabel("Date may be Excel serial or yyyy-MM-dd."));
-        controls.add(Box.createVerticalStrut(12));
+        controls.add(javax.swing.Box.createVerticalStrut(12));
         controls.add(new JLabel("Added dates:"));
         controls.add(listScroll);
 
-        // Chart: embedded XChart panel
-        XYChart chart = new XYChartBuilder().width(800).height(600).title("Sleep Debt over Nights").xAxisTitle("Days Since Earliest Entry").yAxisTitle("Debt").build();
+        XYChart chart = new XYChartBuilder()
+            .width(800)
+            .height(600)
+            .title("Sleep Debt over Nights")
+            .xAxisTitle("Days Since Earliest Entry")
+            .yAxisTitle("Debt")
+            .build();
         chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
-        // Base values to prevent crash. Assume no sleep debt on day 0.
-        chart.addSeries(Constants.XY_SERIES_NAME, new ArrayList<Integer>(java.util.List.of(0)), new ArrayList<Double>(java.util.List.of(0.0)));
+
+        ArrayList<Integer> initialX = new ArrayList<Integer>();
+        ArrayList<Double> initialY = new ArrayList<Double>();
+        initialX.add(0);
+        initialY.add(0.0);
+        chart.addSeries(Constants.XY_SERIES_NAME, initialX, initialY);
         XChartPanel<XYChart> chartPanel = new XChartPanel<>(chart);
 
-        // Add button behaviour: add the selected date to list and update chart
         addBtn.addActionListener(ev -> {
-            java.time.LocalDate selectedDate = datePicker.getDate();
+            LocalDate selectedDate = datePicker.getDate();
             if (selectedDate == null) {
                 JOptionPane.showMessageDialog(frame, "Please pick a date before adding.", "No date", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            Double parsedHours = Doubles.tryParse((textField.getText() == null ? "" : textField.getText().trim()));
+            Double parsedHours = Doubles.tryParse(textField.getText() == null ? "" : textField.getText().trim());
             if (parsedHours == null) {
                 JOptionPane.showMessageDialog(frame, "Please only type an integer or decimal before adding.", "Invalid number", JOptionPane.WARNING_MESSAGE);
                 return;
@@ -100,7 +122,6 @@ public class SimulatorApp {
             addNightAndRefresh(new Night(ExcelDateConverter.toExcelSerial(selectedDate), parsedHours), chart, listModel, chartPanel);
         });
 
-        // CSV upload behaviour: load rows, append them to the nights list, and refresh the plot
         uploadBtn.addActionListener(ev -> {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle("Choose a sleep data CSV");
@@ -119,6 +140,36 @@ public class SimulatorApp {
                 refreshChartAndList(chart, listModel, chartPanel);
             } catch (IOException ex) {
                 JOptionPane.showMessageDialog(frame, "Could not load CSV:\n" + ex.getMessage(), "CSV error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        downloadBtn.addActionListener(ev -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Save sleep data CSV");
+            fileChooser.setSelectedFile(new File("sleep-data-export.csv"));
+            fileChooser.setFileFilter(new FileNameExtensionFilter("CSV files", "csv"));
+
+            if (fileChooser.showSaveDialog(frame) != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+
+            Path csvPath = fileChooser.getSelectedFile().toPath();
+            String fileName = csvPath.getFileName().toString();
+            if (!fileName.toLowerCase().endsWith(".csv")) {
+                Path parent = csvPath.getParent();
+                csvPath = parent == null ? Path.of(fileName + ".csv") : parent.resolve(fileName + ".csv");
+            }
+
+            ArrayList<Night> snapshot;
+            synchronized (nights) {
+                snapshot = new ArrayList<Night>(nights);
+            }
+
+            try {
+                CsvNightExporter.write(csvPath, snapshot);
+                JOptionPane.showMessageDialog(frame, "Saved CSV to:\n" + csvPath, "CSV saved", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(frame, "Could not save CSV:\n" + ex.getMessage(), "CSV error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -156,15 +207,12 @@ public class SimulatorApp {
     }
 
     private String formatNightForDisplay(Night night) {
-        return ExcelDateConverter.toDisplayString(night.excelDateSerial()) + " — " + night.hoursSlept() + " hours";
+        return ExcelDateConverter.toDisplayString(night.excelDateSerial()) + " - " + night.hoursSlept() + " hours";
     }
 
     // Former temporary start function
     public void launch(ArrayList<Integer> days, ArrayList<Double> debt) {
         XYChart chart = QuickChart.getChart("Sleep Balance over Multiple Nights. Negative balance = debt", "Day", "Sleep Balance/Debt", Constants.XY_SERIES_NAME, days, debt);
-        // chart.getStyler().setLegendVisible(false);
-
-        // Show it
         new SwingWrapper<>(chart).displayChart();
     }
 }
