@@ -9,3 +9,6 @@ build
 
 # Ignore the Macbook's local JDK
 oracleJdk-26.jdk
+
+# Ignore AI Assistant Instructions
+instructions
