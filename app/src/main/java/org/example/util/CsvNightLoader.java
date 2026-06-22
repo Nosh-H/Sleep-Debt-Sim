@@ -52,7 +52,19 @@ public final class CsvNightLoader {
         }
 
         nights.sort(Comparator.comparingInt(Night::excelDateSerial));
-        return nights;
+
+        // Deduplicate by date serial: when duplicates exist, prefer the later entry
+        ArrayList<Night> unique = new ArrayList<Night>();
+        for (Night n : nights) {
+            if (unique.isEmpty() || unique.get(unique.size() - 1).excelDateSerial() != n.excelDateSerial()) {
+                unique.add(n);
+            } else {
+                // replace previous with this one (prefer later entry)
+                unique.set(unique.size() - 1, n);
+            }
+        }
+
+        return unique;
     }
 
     private static Night parseNight(String[] columns) {

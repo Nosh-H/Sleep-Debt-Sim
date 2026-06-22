@@ -133,9 +133,30 @@ public class SimulatorApp {
             Path csvPath = fileChooser.getSelectedFile().toPath();
             try {
                 ArrayList<Night> importedNights = CsvNightLoader.load(csvPath);
+
+                // importedNights are already sorted and deduplicated by CsvNightLoader.load
+
                 synchronized (nights) {
-                    nights.addAll(importedNights);
+                    for (Night imp : importedNights) {
+                        boolean replaced = false;
+                        int insertAt = nights.size();
+                        for (int i = 0; i < nights.size(); i++) {
+                            int existingSerial = nights.get(i).excelDateSerial();
+                            if (existingSerial == imp.excelDateSerial()) {
+                                nights.set(i, imp);
+                                replaced = true;
+                                break;
+                            } else if (existingSerial > imp.excelDateSerial()) {
+                                insertAt = i;
+                                break;
+                            }
+                        }
+                        if (!replaced) {
+                            nights.add(insertAt, imp);
+                        }
+                    }
                 }
+
                 refreshChartAndList(chart, listModel, chartPanel);
             } catch (IOException ex) {
                 JOptionPane.showMessageDialog(frame, "Could not load CSV:\n" + ex.getMessage(), "CSV error", JOptionPane.ERROR_MESSAGE);
@@ -181,7 +202,23 @@ public class SimulatorApp {
 
     private void addNightAndRefresh(Night night, XYChart chart, DefaultListModel<String> listModel, XChartPanel<XYChart> chartPanel) {
         synchronized (nights) {
-            nights.add(night);
+            boolean replaced = false;
+            int insertAt = nights.size();
+            for (int i = 0; i < nights.size(); i++) {
+                int existingSerial = nights.get(i).excelDateSerial();
+                if (existingSerial == night.excelDateSerial()) {
+                    nights.set(i, night);
+                    replaced = true;
+                    break;
+                } else if (existingSerial > night.excelDateSerial()) {
+                    insertAt = i;
+                    break;
+                }
+            }
+
+            if (!replaced) {
+                nights.add(insertAt, night);
+            }
         }
         refreshChartAndList(chart, listModel, chartPanel);
     }
