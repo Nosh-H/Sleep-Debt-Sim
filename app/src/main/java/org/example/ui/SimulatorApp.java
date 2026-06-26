@@ -44,6 +44,7 @@ import java.util.Comparator;
 public class SimulatorApp {
 
     private final ArrayList<Night> nights = new ArrayList<Night>();
+    private boolean showAbsoluteDates = false;
 
     // Starts and runs the simulation
     public void start() {
@@ -65,6 +66,7 @@ public class SimulatorApp {
         JButton addBtn = new JButton("Add Date");
         JButton uploadBtn = new JButton("Upload CSV");
         JButton downloadBtn = new JButton("Download CSV");
+        JButton toggleAxisBtn = new JButton("Switch to Dates");
 
         DefaultListModel<String> listModel = new DefaultListModel<>();
         JList<String> dateList = new JList<>(listModel);
@@ -82,6 +84,8 @@ public class SimulatorApp {
         controls.add(uploadBtn);
         controls.add(javax.swing.Box.createVerticalStrut(8));
         controls.add(downloadBtn);
+        controls.add(javax.swing.Box.createVerticalStrut(8));
+        controls.add(toggleAxisBtn);
         controls.add(javax.swing.Box.createVerticalStrut(8));
         controls.add(new JLabel("CSV format: date + hours"));
         controls.add(new JLabel("Date may be Excel serial or yyyy-MM-dd."));
@@ -193,6 +197,12 @@ public class SimulatorApp {
             }
         });
 
+        toggleAxisBtn.addActionListener(ev -> {
+            showAbsoluteDates = !showAbsoluteDates;
+            toggleAxisBtn.setText(showAbsoluteDates ? "Switch to Days" : "Switch to Dates");
+            refreshChartAndList(chart, listModel, chartPanel);
+        });
+
         frame.add(controls, BorderLayout.WEST);
         frame.add(chartPanel, BorderLayout.CENTER);
         frame.pack();
@@ -237,7 +247,29 @@ public class SimulatorApp {
         }
 
         ResultWrapper coordinates = CalculateGraph.computeValues(orderedNights);
-        chart.updateXYSeries(Constants.XY_SERIES_NAME, new ArrayList<Integer>(coordinates.x()), new ArrayList<Double>(coordinates.y()), null);
+
+        // Remove the existing series so we can re-add it with the correct x-axis data type.
+        // XChart's updateXYSeries does not support switching between numeric and Date x-values
+        // on an existing series, so we recreate it each time.
+        chart.removeSeries(Constants.XY_SERIES_NAME);
+
+        if (showAbsoluteDates && !orderedNights.isEmpty()) {
+            ArrayList<java.sql.Date> dateX = new ArrayList<>();
+            for (Night n : orderedNights) {
+                LocalDate ld = ExcelDateConverter.fromExcelSerial(n.excelDateSerial());
+                dateX.add(java.sql.Date.valueOf(ld));
+            }
+            chart.addSeries(Constants.XY_SERIES_NAME, dateX, new ArrayList<>(coordinates.y()));
+            chart.getStyler().setDatePattern("MMM d, yyyy");
+            chart.getStyler().setXAxisLabelRotation(45);
+            chart.setXAxisTitle("Date");
+        } else {
+            chart.addSeries(Constants.XY_SERIES_NAME, new ArrayList<>(coordinates.x()), new ArrayList<>(coordinates.y()));
+            chart.getStyler().setDatePattern(null);
+            chart.getStyler().setXAxisLabelRotation(0);
+            chart.setXAxisTitle("Days Since Earliest Entry");
+        }
+
         chartPanel.revalidate();
         chartPanel.repaint();
     }
