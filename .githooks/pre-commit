@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Cross-platform pre-commit hook for the Sleep-Debt-Sim repo.
+# - Runs Spotless formatter (spotlessApply) to ensure staged files are formatted
+# - Re-stages any changes made by the formatter
+# - Optionally runs tests if environment variable RUN_TESTS is set (non-empty)
+
+# Determine repository root robustly via git
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Choose gradlew wrapper: prefer unix-executable gradlew, fall back to gradlew.bat
+GRADLEW="./gradlew"
+if [ ! -x "$GRADLEW" ] && [ -f "./gradlew.bat" ]; then
+  GRADLEW="./gradlew.bat"
+fi
+
+echo "[pre-commit] Running Spotless (auto-formatting)..."
+# Try to auto-apply formatting changes. If Spotless is not available or fails, exit non-zero.
+# --no-daemon keeps the hook fast and avoids lingering daemons on CI/local machines
+# Try to avoid configuration-cache issues when Spotless runs in hooks
+$GRADLEW --no-configuration-cache spotlessApply --no-daemon || {
+  echo "[pre-commit] Spotless failed; attempting to remove .gradle/configuration-cache and retry"
+  rm -rf .gradle/configuration-cache || true
+  $GRADLEW spotlessApply --no-daemon
+}
+
+# Re-stage any changes made by the formatter so they are included in the commit
+git add -A
+
+# Optionally run tests if the environment variable RUN_TESTS is set (non-empty)
+if [ -n "${RUN_TESTS:-}" ]; then
+  echo "[pre-commit] RUN_TESTS set: running tests (this may be slow)..."
+  $GRADLEW test --no-daemon
+fi
+
+exit 0
