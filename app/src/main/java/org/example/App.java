@@ -4,28 +4,26 @@
 package org.example;
 
 import javax.swing.*;
-
 import org.example.ui.SimulatorApp;
 
 public class App {
-    public String getGreeting() {
-        return "Hello World!";
-    }
+  public String getGreeting() {
+    return "Hello World!";
+  }
 
-    /**
-     * Main entry. Replaced the original CLI/CSV-driven main with a Swing demo
-     * showing how to use LGoodDatePicker.
-     *
-     * Important:
-     * - All Swing component creation and updates must happen on the Event
-     *   Dispatch Thread (EDT). We use SwingUtilities.invokeLater(...) to
-     *   schedule UI creation on the EDT. This prevents subtle threading bugs
-     *   where the UI is updated from background threads.
-     */
-    public static void main(String[] args) {
-        // Schedule UI initialization on the Event Dispatch Thread (EDT).
-        SwingUtilities.invokeLater(() -> {
-            new SimulatorApp().start();
+  /**
+   * Main entry. Replaced the original CLI/CSV-driven main with a Swing demo showing how to use
+   * LGoodDatePicker.
+   *
+   * <p>Important: - All Swing component creation and updates must happen on the Event Dispatch
+   * Thread (EDT). We use SwingUtilities.invokeLater(...) to schedule UI creation on the EDT. This
+   * prevents subtle threading bugs where the UI is updated from background threads.
+   */
+  public static void main(String[] args) {
+    // Schedule UI initialization on the Event Dispatch Thread (EDT).
+    SwingUtilities.invokeLater(
+        () -> {
+          new SimulatorApp().start();
         });
-    }
+  }
 }
