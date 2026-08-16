@@ -29,6 +29,7 @@ import org.example.util.CsvNightExporter;
 import org.example.util.CsvNightLoader;
 import org.example.util.ExcelDateConverter;
 import org.example.util.Night;
+import org.example.util.NightRepository;
 import org.example.util.ResultWrapper;
 import org.knowm.xchart.QuickChart;
 import org.knowm.xchart.SwingWrapper;
@@ -39,7 +40,7 @@ import org.knowm.xchart.style.Styler;
 
 public class SimulatorApp {
 
-  private final ArrayList<Night> nights = new ArrayList<Night>();
+  private final NightRepository nightRepository = new NightRepository();
   private boolean showAbsoluteDates = false;
 
   // Starts and runs the simulation
@@ -147,28 +148,9 @@ public class SimulatorApp {
           try {
             ArrayList<Night> importedNights = CsvNightLoader.load(csvPath);
 
-            // importedNights are already sorted and deduplicated by CsvNightLoader.load
-
-            synchronized (nights) {
-              for (Night imp : importedNights) {
-                boolean replaced = false;
-                int insertAt = nights.size();
-                for (int i = 0; i < nights.size(); i++) {
-                  int existingSerial = nights.get(i).excelDateSerial();
-                  if (existingSerial == imp.excelDateSerial()) {
-                    nights.set(i, imp);
-                    replaced = true;
-                    break;
-                  } else if (existingSerial > imp.excelDateSerial()) {
-                    insertAt = i;
-                    break;
-                  }
-                }
-                if (!replaced) {
-                  nights.add(insertAt, imp);
-                }
-              }
-            }
+            // importedNights are already sorted and deduplicated by CsvNightLoader.load, but the
+            // repository still keeps the same replace-or-insert ordering contract for every caller.
+            nightRepository.upsertAll(importedNights);
 
             refreshChartAndList(chart, listModel, chartPanel);
           } catch (IOException ex) {
@@ -199,10 +181,7 @@ public class SimulatorApp {
                 parent == null ? Path.of(fileName + ".csv") : parent.resolve(fileName + ".csv");
           }
 
-          ArrayList<Night> snapshot;
-          synchronized (nights) {
-            snapshot = new ArrayList<Night>(nights);
-          }
+          ArrayList<Night> snapshot = nightRepository.snapshot();
 
           try {
             CsvNightExporter.write(csvPath, snapshot);
@@ -236,34 +215,15 @@ public class SimulatorApp {
       XYChart chart,
       DefaultListModel<String> listModel,
       XChartPanel<XYChart> chartPanel) {
-    synchronized (nights) {
-      boolean replaced = false;
-      int insertAt = nights.size();
-      for (int i = 0; i < nights.size(); i++) {
-        int existingSerial = nights.get(i).excelDateSerial();
-        if (existingSerial == night.excelDateSerial()) {
-          nights.set(i, night);
-          replaced = true;
-          break;
-        } else if (existingSerial > night.excelDateSerial()) {
-          insertAt = i;
-          break;
-        }
-      }
-
-      if (!replaced) {
-        nights.add(insertAt, night);
-      }
-    }
+    // The repository owns the insertion rules so both manual adds and CSV imports follow the same
+    // replace-or-insert-by-date logic.
+    nightRepository.upsert(night);
     refreshChartAndList(chart, listModel, chartPanel);
   }
 
   private void refreshChartAndList(
       XYChart chart, DefaultListModel<String> listModel, XChartPanel<XYChart> chartPanel) {
-    ArrayList<Night> orderedNights;
-    synchronized (nights) {
-      orderedNights = new ArrayList<Night>(nights);
-    }
+    ArrayList<Night> orderedNights = nightRepository.snapshot();
 
     orderedNights.sort(Comparator.comparingInt(Night::excelDateSerial));
 
