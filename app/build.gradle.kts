@@ -33,6 +33,9 @@ dependencies {
 
     // Guava library to use the Double.tryParse() method for more elegant input validation
     implementation("com.google.guava:guava:33.6.0-jre")
+
+    // Use Apache Commons CSV for robust, RFC4180-compliant CSV parsing (handles quoted fields, embedded commas)
+    implementation("org.apache.commons:commons-csv:1.10.0")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.

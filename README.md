@@ -27,6 +27,8 @@ Run tests and build from the repository root:
   - .\gradlew.bat clean test
   - .\gradlew.bat :app:run
 
+Refresh Gradle (or VS Code) after build file changes.
+
 Continuous Integration
 ----------------------
 A GitHub Actions workflow (.github/workflows/ci.yml) runs on push and pull_request to main/master and executes:
